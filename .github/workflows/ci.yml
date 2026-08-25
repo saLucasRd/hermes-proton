@@ -19,9 +19,9 @@ jobs:
         os: [ubuntu-latest, macos-latest]
         python: ["3.11", "3.12", "3.13"]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
 
@@ -46,8 +46,8 @@ jobs:
     name: lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - run: pipx install ruff==0.14.2
@@ -58,8 +58,8 @@ jobs:
     name: manifest
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - run: pip install pyyaml
@@ -81,7 +81,7 @@ jobs:
     name: no secrets
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Scan for credentials and personal data
         run: |
           if grep -rniE '(sk-[a-zA-Z0-9]{16}|ghp_[a-zA-Z0-9]{16}|-----BEGIN [A-Z ]*PRIVATE KEY|password\s*=\s*["'"'"'][^"'"'"']+)' plugins/ ; then
