@@ -1,0 +1,11 @@
+name: proton
+version: 1.0.0
+description: "Proton integration — Mail, Drive and Calendar, end-to-end encrypted. Wraps the unofficial proton-cli (SRP login + gopenpgp, decryption happens locally; no bridge, no proxy). Reads are free; every mutation (send mail, upload/delete files, create/delete events) is structurally gated behind confirm=true and previews via --dry-run until then."
+author: droolyai
+homepage: https://github.com/droolyai/hermes-proton
+license: MIT
+kind: backend
+provides_tools:
+  - proton_mail
+  - proton_drive
+  - proton_calendar

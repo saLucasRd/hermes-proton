@@ -1,0 +1,91 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: test (${{ matrix.os }}, py${{ matrix.python }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      # The suite is credential-free and offline. A stub binary is enough to
+      # exercise discovery; the gate assertions never reach the network.
+      - name: Provide a stub proton binary
+        shell: bash
+        run: |
+          mkdir -p "$HOME/.hermes/bin"
+          printf '#!/bin/sh\necho "Error: You are not signed in." >&2\nexit 2\n' \
+            > "$HOME/.hermes/bin/proton"
+          chmod +x "$HOME/.hermes/bin/proton"
+
+      - name: Run the plugin self-test
+        shell: bash
+        run: |
+          mkdir -p "$HOME/.hermes/plugins"
+          cp -r plugins/proton "$HOME/.hermes/plugins/"
+          python "$HOME/.hermes/plugins/proton/test_proton.py"
+
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pipx install ruff==0.14.2
+      - name: Ruff
+        run: ruff check plugins/
+
+  manifest:
+    name: manifest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pyyaml
+      - name: Manifest declares exactly the tools the code registers
+        run: |
+          python - <<'PY'
+          import re, sys, yaml, pathlib
+          manifest = yaml.safe_load(pathlib.Path("plugins/proton/plugin.yaml").read_text())
+          declared = set(manifest["provides_tools"])
+          init = pathlib.Path("plugins/proton/__init__.py").read_text()
+          registered = set(re.findall(r'\("(proton_\w+)",', init))
+          if declared != registered:
+              print(f"MISMATCH\n  declared:   {sorted(declared)}\n  registered: {sorted(registered)}")
+              sys.exit(1)
+          print(f"OK: {len(declared)} tools, manifest and code agree")
+          PY
+
+  secrets:
+    name: no secrets
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Scan for credentials and personal data
+        run: |
+          if grep -rniE '(sk-[a-zA-Z0-9]{16}|ghp_[a-zA-Z0-9]{16}|-----BEGIN [A-Z ]*PRIVATE KEY|password\s*=\s*["'"'"'][^"'"'"']+)' plugins/ ; then
+            echo "::error::possible credential committed"
+            exit 1
+          fi
+          echo "OK: no credentials found"

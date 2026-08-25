@@ -1,0 +1,10 @@
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+
+[tool.ruff.lint]
+# Explicit, so CI does not drift when ruff changes its defaults.
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF", "BLE"]
+
+[tool.ruff.format]
+quote-style = "double"
